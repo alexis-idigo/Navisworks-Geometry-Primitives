@@ -56,9 +56,6 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="x64\Debug\Autodesk.Navisworks.Api.dll" />
-    <None Include="x64\Debug\Autodesk.Navisworks.Automation.dll" />
-    <None Include="x64\Debug\Autodesk.Navisworks.ComApi.dll" />
-    <None Include="x64\Debug\Autodesk.Navisworks.Interop.ComApi.dll" />
+    <None Include="C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8\System.dll" />
   </ItemGroup>
 </Project>
