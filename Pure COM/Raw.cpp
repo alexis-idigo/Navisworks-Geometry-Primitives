@@ -1,4 +1,3 @@
-
 //------------------------------------------------------------------
 // NavisWorks Sample code
 //------------------------------------------------------------------
@@ -34,11 +33,13 @@ long please::_geometriescount;
 long please::_fragscount;
 long please::_primitivescount;
 
+/*
 ref class dateClass {
 	public:
 		static System::DateTime stTime; 
 		static System::IO::StreamWriter^ outfile;
 };
+*/
 
 class CSeeker : public ATL::CComObjectRoot,
 				public IDispatchImpl<raw::InwSeekSelection>
@@ -228,7 +229,6 @@ void please::doit_primitive(IUnknown* iunk_state)
 	please::_primitivescount = 0;
 
 	raw::InwOpState10Ptr state(iunk_state);
-	//raw::InwOaPartitionPtr oP = state->CurrentPartition;
 	raw::InwOpSelectionPtr opSelection = state->CurrentSelection;
 	raw::InwSelectionPathsCollPtr paths = opSelection->Paths();
 
@@ -256,9 +256,10 @@ void please::doit_primitive(IUnknown* iunk_state)
 		please::_geometriescount++;
 		DumpFragments(fragments);
 	}
+
 	//dateClass::outfile = gcnew System::IO::StreamWriter("c:\\temp\\dump.rtf");
 
-	//path->GetArrayData(); //???
+	//raw::InwOaPartitionPtr oP = state->CurrentPartition;
 	//walkNode(oP, false);
 
 	//dateClass::outfile->Close();
