@@ -23,62 +23,53 @@
 
 #include <atlbase.h>
 #include <atlcom.h>
-#import "C:\Program Files\Autodesk\Navisworks Manage 2018\lcodieD.dll"  rename_namespace("raw")
+//#include <span>
+
+#import "C:\Program Files\Autodesk\Navisworks Manage 2023\lcodieD.dll"  rename_namespace("raw")
 
 using namespace System;
 
-
 CComModule _Module;
-long please::_geonodecount;
+long please::_geometriescount;
 long please::_fragscount;
-
+long please::_primitivescount;
 
 ref class dateClass {
-public:
-	static System::DateTime stTime; 
-	static System::IO::StreamWriter^ outfile;
-
-};  
-
+	public:
+		static System::DateTime stTime; 
+		static System::IO::StreamWriter^ outfile;
+};
 
 class CSeeker : public ATL::CComObjectRoot,
-                public IDispatchImpl<raw::InwSeekSelection>
-            
+				public IDispatchImpl<raw::InwSeekSelection>
 {
 public:
-   BEGIN_COM_MAP(CSeeker)
-      COM_INTERFACE_ENTRY(raw::InwSeekSelection)
-   END_COM_MAP()
+	BEGIN_COM_MAP(CSeeker)
+		COM_INTERFACE_ENTRY(raw::InwSeekSelection)
+	END_COM_MAP()
 
-   STDMETHOD(raw_SelectNode)(/*[in]*/ struct raw::InwOaNode* node,
-                             /*[in]*/ struct raw::InwOaPath* path,
-                             /*[in,out]*/ VARIANT_BOOL* Add,
-                             /*[in,out]*/ VARIANT_BOOL* finished) 
-   {
-      return S_OK;
-   }
-                             
-   CSeeker()
-   {
-   
-   }
+	STDMETHOD(raw_SelectNode)(/*[in]*/ struct raw::InwOaNode* node,
+							/*[in]*/ struct raw::InwOaPath* path,
+							/*[in,out]*/ VARIANT_BOOL* Add,
+							/*[in,out]*/ VARIANT_BOOL* finished) 
+	{
+		return S_OK;
+	}
 
-}; 
+	CSeeker() {}
+};
 
-
-void 
-please::doit(IUnknown* iunk_state) 
+void please::doit(IUnknown* iunk_state) 
 {
-   raw::InwOpState10Ptr state(iunk_state);
+	raw::InwOpState10Ptr state(iunk_state);
+	raw::InwOpSelectionPtr selection=state->ObjectFactory(raw::eObjectType_nwOpSelection);
 
+	CComObject<CSeeker> *cseeker;
 
-   raw::InwOpSelectionPtr selection=state->ObjectFactory(raw::eObjectType_nwOpSelection);
+	HRESULT HR=CComObject<CSeeker>::CreateInstance(&cseeker);
+	raw::InwSeekSelectionPtr seeker=cseeker->GetUnknown();//???
 
-   CComObject<CSeeker> *cseeker;
-
-   HRESULT HR=CComObject<CSeeker>::CreateInstance(&cseeker);
-   raw::InwSeekSelectionPtr seeker=cseeker->GetUnknown();//???
-   state->SeekSelection(selection,seeker);
+	state->SeekSelection(selection,seeker);
 }
 
 //// by Xiaodong Liang March 10th
@@ -89,138 +80,198 @@ class CallbackGeomClass:public ATL::CComObjectRoot,
 	public IDispatchImpl<raw::InwSimplePrimitivesCB>
 {
 	public:
-   BEGIN_COM_MAP(CallbackGeomClass)
-      COM_INTERFACE_ENTRY(raw::InwSimplePrimitivesCB)
-   END_COM_MAP()
+		BEGIN_COM_MAP(CallbackGeomClass)
+			COM_INTERFACE_ENTRY(raw::InwSimplePrimitivesCB)
+		END_COM_MAP()
 
-   STDMETHOD(raw_Triangle)(/*[in]*/ struct raw::InwSimpleVertex* v1,
+	float x, y, z; // temp storage for coords
+
+	void GetPoint(struct raw::InwSimpleVertex* v)
+	{
+		// do your work
+		auto coords = v->Getcoord();
+		auto array = coords.parray;
+		//System::Diagnostics::Debug::Assert(array->cDims == 1);
+		//System::Diagnostics::Debug::Assert(array->cbElements == 4);
+		//System::Diagnostics::Debug::Assert(array->rgsabound->cElements == 3);
+		float* vs = (float*)(array->pvData);
+		x = vs[0];
+		y = vs[1];
+		z = vs[2];
+	}
+
+	STDMETHOD(raw_Triangle)(/*[in]*/ struct raw::InwSimpleVertex* v1,
 							/*[in]*/ struct raw::InwSimpleVertex* v2,
-								/*[in]*/ struct raw::InwSimpleVertex* v3
-                              ) 
-   {
-	   // do your work
+							/*[in]*/ struct raw::InwSimpleVertex* v3
+							)
+	{
+		please::_primitivescount++; // one more primitive
 
-	   
+		GetPoint(v1);
+		GetPoint(v2);
+		GetPoint(v3);
 
-      return S_OK;
-   }
+		return S_OK;
+	}
 
-		STDMETHOD(raw_Line)(/*[in]*/ struct raw::InwSimpleVertex* v1,
-			/*[in]*/ struct raw::InwSimpleVertex* v2 
-    ) 
-   {
-			 
+	STDMETHOD(raw_Line)(/*[in]*/ struct raw::InwSimpleVertex* v1,
+						/*[in]*/ struct raw::InwSimpleVertex* v2 
+					)
+	{
+		please::_primitivescount++; // one more primitive
 
-      return S_OK;
-   }
+		GetPoint(v1);
+		GetPoint(v2);
 
-		STDMETHOD(raw_Point)(/*[in]*/ struct raw::InwSimpleVertex* v1) 
-   {
-				 
+		return S_OK;
+	}
 
-      return S_OK;
-   }
+	STDMETHOD(raw_Point)(/*[in]*/ struct raw::InwSimpleVertex* v1) 
+	{
+		please::_primitivescount++; // one more primitive
 
-		STDMETHOD(raw_SnapPoint)(/*[in]*/ struct raw::InwSimpleVertex* v1 ) 
-   {
-					
+		GetPoint(v1);
 
- 
-      return S_OK;
-   }
-                             
-   CallbackGeomClass()
-   {
-   
-   }
+		return S_OK;
+	}
+
+	STDMETHOD(raw_SnapPoint)(/*[in]*/ struct raw::InwSimpleVertex* v1)
+	{
+		please::_primitivescount++; // one more primitive
+
+		GetPoint(v1);
+
+		return S_OK;
+	}
+
+	CallbackGeomClass() {}
 };
 
-// walk through the model and get the primitives
-void 
-	please::walkNode( IUnknown* iunk_node, bool bFoundFirst)
-{
-	 raw::InwOaNodePtr node(iunk_node);
 
-	 
-    // If this is a group node then recurse into the structure
-    if (node->IsGroup)
-    {
-        raw::InwOaGroupPtr group = (raw::InwOaGroupPtr)node;
+//static void DumpFragments(raw::InwNodeFragsCollPtr fragments)
+static void DumpFragments(raw::InwNodeFragsColl* fragments)
+{
+	long fragsCount = fragments->Count;
+
+#ifdef xxDEBUG
+	System::Diagnostics::Debug::WriteLine("frags count:" + fragsCount.ToString());
+#endif
+
+	_variant_t _fragIndex = _variant_t(1);
+	for (long fragindex = 1; fragindex <= fragsCount; fragindex++)
+	{
+		CComObject<CallbackGeomClass>* callbkListener;
+		HRESULT HR = CComObject<CallbackGeomClass>::CreateInstance(&callbkListener);
+
+		_fragIndex.intVal = fragindex;
+		raw::InwOaFragment3Ptr frag = fragments->GetItem(&_fragIndex); // _variant_t(fragindex));
+		//VARIANT varGeometry;
+		//VariantInit(&varGeometry);
+		//HRESULT hr = frag->get_Geometry(&varGeometry);
+		//if (FAILED(hr))
+		//{
+		//	//Debug::WriteLine(L"get_Geometry failed with err: " + hr);
+		//}
+
+		//if (!FAILED(hr))
+		frag->GenerateSimplePrimitives(raw::nwEVertexProperty::eNORMAL,
+			callbkListener);
+
+		//please::_fragscount++;
+	}
+
+	please::_fragscount += fragsCount;
+}
+
+// walk through the model and get the primitives
+void please::walkNode(IUnknown* iunk_node, bool bFoundFirst)
+{
+	raw::InwOaNodePtr node(iunk_node);
+
+	// If this is a group node then recurse into the structure
+	if (node->IsGroup)
+	{
+		raw::InwOaGroupPtr group = (raw::InwOaGroupPtr)node;
 		long subNodesCount = group->Children()->GetCount();
 		for(long subNodeIndex = 1; subNodeIndex <= subNodesCount ; subNodeIndex++)
 		{
 			if ((!bFoundFirst) && (subNodesCount > 1))
-            {
-                bFoundFirst = true;
-            }
-			 raw::InwOaNodePtr newNode = group->Children()->GetItem(_variant_t(subNodeIndex));
-			 walkNode(newNode, bFoundFirst);
-
-
-		} 
-                
-    }
-    else if (node->IsGeometry)
-    {
-		
-          long fragsCount = node->Fragments()->Count;
-		  please::_geonodecount += 1; // one more node
-		  System::Diagnostics::Debug::WriteLine("frags count:" + fragsCount.ToString());
-		for(long fragindex = 1;fragindex<= fragsCount;fragindex++)
-		{
-			 CComObject<CallbackGeomClass> *callbkListener;
-			HRESULT HR=CComObject<CallbackGeomClass>::CreateInstance(&callbkListener);
-
-			raw::InwOaFragment3Ptr frag =  node->Fragments()->GetItem(_variant_t(fragindex));
-			VARIANT varGeometry;
-			VariantInit(&varGeometry);
-			HRESULT hr = frag->get_Geometry(&varGeometry);
-			if (FAILED(hr))
 			{
-				//Debug::WriteLine(L"get_Geometry failed with err: " + hr);
+				bFoundFirst = true;
 			}
- 			 frag->GenerateSimplePrimitives(
-                   raw::nwEVertexProperty::eNORMAL, 
-                                  callbkListener);
+			
+			raw::InwOaNodePtr newNode = group->Children()->GetItem(_variant_t(subNodeIndex));
+			walkNode(newNode, bFoundFirst);
+		}
+	}
+	else if (node->IsGeometry)
+	{
+		please::_geometriescount++; // one more node
 
-			 please::_fragscount++;
-
-		}   
-		 
-		 
+		raw::InwNodeFragsCollPtr fragments = node->Fragments();
+		DumpFragments(fragments);
+		
+#ifdef xxDEBUG
 		System::DateTime nowTime = System::DateTime::Now;
 		System::TimeSpan span = nowTime.Subtract(dateClass::stTime);
 		//dateClass::span = dateClass::nowTime.Subtract()
-		System::Diagnostics::Debug::WriteLine(please::_geonodecount +  "node done:" + span.TotalMilliseconds.ToString());
-
-    }
-
+		System::Diagnostics::Debug::WriteLine(please::_geonodecount +  " nodes done:" + span.TotalMilliseconds.ToString());
+#endif
+	}
 }
 
 // do primitive
-void 
-please::doit_primitive(IUnknown* iunk_state) 
+void please::doit_primitive(IUnknown* iunk_state) 
 {
-	please::_geonodecount = 0;
+	please::_geometriescount = 0;
 	please::_fragscount = 0;
+	please::_primitivescount = 0;
 
-    raw::InwOpState10Ptr state(iunk_state);
-    raw::InwOaPartitionPtr   oP = state->CurrentPartition;
-   
-	dateClass::stTime = DateTime::Now;
+	raw::InwOpState10Ptr state(iunk_state);
+	//raw::InwOaPartitionPtr oP = state->CurrentPartition;
+	raw::InwOpSelectionPtr opSelection = state->CurrentSelection;
+	raw::InwSelectionPathsCollPtr paths = opSelection->Paths();
 
-	dateClass::outfile = gcnew System::IO::StreamWriter("c:\\temp\\dump.rtf");
+	int pc = paths->Count;
+	if (pc < 1)
+		return;
+	
+	DateTime stTime = DateTime::Now;
 
-    walkNode(oP, false);  
+	for (int i = 1; i <= pc; i++)
+	{
+		//_path.intVal = i;
+		_variant_t _pathIndex = _variant_t(i);
+		_variant_t _path = paths->GetItem(&_pathIndex); // 1 based
+		//raw::InwOaPathPtr path = (IUnknown*)_path;
+		//raw::InwNodeFragsCollPtr fragments = path->Fragments();
+		raw::InwOaPath* path = (raw::InwOaPath*)_path.punkVal;
+		//raw::InwNodeFragsColl* fragments = path->Fragments();
+		struct raw::InwNodeFragsColl* fragments = 0;
+		path->raw_Fragments(&fragments);
 
-	dateClass::outfile->Close();
+		if (fragments->Count < 1)
+			continue;
+
+		please::_geometriescount++;
+		DumpFragments(fragments);
+	}
+	//dateClass::outfile = gcnew System::IO::StreamWriter("c:\\temp\\dump.rtf");
+
+	//path->GetArrayData(); //???
+	//walkNode(oP, false);
+
+	//dateClass::outfile->Close();
 
 	System::DateTime nowTime = System::DateTime::Now;
-	System::TimeSpan span = nowTime.Subtract(dateClass::stTime);
-	//dateClass::span = dateClass::nowTime.Subtract()
-	System::Diagnostics::Debug::WriteLine(span.TotalMilliseconds.ToString()); 
-	System::Windows::Forms::MessageBox::Show(span.TotalMilliseconds.ToString() + 
-		" ms, Geometry Node: "+ please::_geonodecount +
-	    "Fragments: " + please::_fragscount);
+	System::TimeSpan span = nowTime.Subtract(stTime);
+	//dateClass::span = dateClass::nowTime.Subtract();
+#ifdef DEBUG
+	System::Diagnostics::Debug::WriteLine(span.TotalMilliseconds.ToString());
+#endif
+	System::Windows::Forms::MessageBox::Show(span.TotalMilliseconds.ToString() + " ms, " + 
+											please::_geometriescount + " geometries, " + 
+											please::_fragscount + " fragments, " +
+											please::_primitivescount + " primitives");
 }
 

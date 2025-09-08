@@ -55,4 +55,10 @@
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="x64\Debug\Autodesk.Navisworks.Api.dll" />
+    <None Include="x64\Debug\Autodesk.Navisworks.Automation.dll" />
+    <None Include="x64\Debug\Autodesk.Navisworks.ComApi.dll" />
+    <None Include="x64\Debug\Autodesk.Navisworks.Interop.ComApi.dll" />
+  </ItemGroup>
 </Project>

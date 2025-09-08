@@ -20,43 +20,27 @@
 
 // This is the main DLL file.
 
-
-
-
 #include <Unknwn.h>
 
-#import "C:\Program Files\Autodesk\Navisworks Manage 2018\lcodieD.dll" raw_interfaces_only rename_namespace("RawComApi")
-
+#import "C:\Program Files\Autodesk\Navisworks Manage 2023\lcodieD.dll" raw_interfaces_only rename_namespace("RawComApi")
 
 namespace ComApiAccess= Autodesk::Navisworks::Api::ComApi;
 namespace InteropComApi= Autodesk::Navisworks::Api::Interop::ComApi;
 using namespace System::Runtime::InteropServices;
 
-
-
-
 #include "ManagedPluginCpp.h"
 #include "Raw.h"
 
-
-
 namespace ManagedPluginCpp 
 {
+	int MainPlugin::Execute(...cli::array<System::String^,1>^ parameters)
+	{
+		InteropComApi::InwOpState10^ interop_state=ComApiAccess::ComApiBridge::State;
+		IUnknown* iunk_state=static_cast<IUnknown*>(Marshal::GetIUnknownForObject(interop_state).ToPointer());
+	 
+		//please::doit(iunk_state);
+		please::doit_primitive(iunk_state);
 
-int
-MainPlugin::Execute(...cli::array<System::String^,1>^ parameters)
-{
-   InteropComApi::InwOpState10^ interop_state=ComApiAccess::ComApiBridge::State;
-   IUnknown* iunk_state=static_cast<IUnknown*>(Marshal::GetIUnknownForObject(interop_state).ToPointer());
-     
-   //please::doit(iunk_state);
-
-   please::doit_primitive(iunk_state);
-
-
-
-   return 0;
+		return 0;
+	}
 }
-
-}
-
